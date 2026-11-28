@@ -1,9 +1,10 @@
 import { useHttp, usePage } from '@inertiajs/react';
 import { Bug, Lightbulb, X } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { store } from '@/actions/App/Http/Controllers/IssueController';
+import { index as similarIssues } from '@/actions/App/Http/Controllers/SimilarIssueController';
 import { showTimeout, timeoutFrom } from '@/components/timeout-dialog';
 import { WordmarkText } from '@/components/wordmark-text';
 import { collectEnvironment } from '@/lib/environment';
@@ -12,6 +13,7 @@ import type { IssueCommand, IssueKind } from '@/lib/issue-commands';
 import {
     hintedCommand,
     issueCommands,
+    issueTitle,
     suggestedCommands,
     typedCommand,
 } from '@/lib/issue-commands';
@@ -349,5 +351,87 @@ export function IssueCommandHint({
                 <X className="size-3.5" aria-hidden="true" />
             </button>
         </div>
+    );
+}
+
+type SimilarIssue = { number: number; title: string; url: string };
+
+/**
+ * The open issues whose titles share words with the draft's, shown while it is written, so its author can join an
+ * existing issue instead of opening a duplicate. The last matches stay until the next ones arrive, and the slot keeps
+ * the height of three, so matches arriving after a pause never move the page.
+ */
+export function SimilarIssues({ body }: { body: string }) {
+    const title = issueTitle(body);
+    const [issues, setIssues] = useState<SimilarIssue[]>([]);
+    const matches = title.length < 3 ? [] : issues;
+
+    useEffect(() => {
+        if (title.length < 3) {
+            return;
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+            void fetch(similarIssues.url({ query: { q: title } }), {
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+            })
+                .then(async (response) => {
+                    const data = response.ok
+                        ? ((await response.json()) as {
+                              issues: SimilarIssue[];
+                          })
+                        : { issues: [] };
+
+                    if (!controller.signal.aborted) {
+                        setIssues(data.issues);
+                    }
+                })
+                .catch(() => undefined);
+        }, 500);
+
+        return () => {
+            clearTimeout(timeout);
+            controller.abort();
+        };
+    }, [title]);
+
+    return (
+        <section
+            aria-label="Similar open issues"
+            aria-live="polite"
+            data-test="similar-issues"
+            className="mt-1 h-23 min-w-0 overflow-hidden text-[13px]"
+        >
+            <p className="h-5 truncate text-muted-foreground">
+                {matches.length > 0
+                    ? 'Already asked? Similar open issues:'
+                    : 'Similar open issues show here as you write the title.'}
+            </p>
+            <ul>
+                {matches.map((issue) => (
+                    <li key={issue.number} className="flex h-6 min-w-0">
+                        <a
+                            href={issue.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={issue.title}
+                            className="flex min-w-0 items-center gap-1.5 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                        >
+                            <span className="shrink-0 font-mono text-primary tabular-nums">
+                                #{issue.number}
+                            </span>
+                            <span className="min-w-0 truncate">
+                                {issue.title}
+                            </span>
+                            <span className="sr-only">
+                                (opens in a new tab)
+                            </span>
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        </section>
     );
 }

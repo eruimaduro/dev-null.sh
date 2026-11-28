@@ -135,6 +135,7 @@ use App\Http\Controllers\ScheduledCommitController;
 use App\Http\Controllers\ScheduledCommitSubmissionController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\SimilarIssueController;
 use App\Http\Controllers\SiteActivityController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\StarredCommitController;
@@ -686,6 +687,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('search/issues', [IssueSuggestionController::class, 'index'])
         ->middleware('throttle:issue-suggestions')
         ->name('issue-suggestion.index');
+    Route::get('search/similar-issues', [SimilarIssueController::class, 'index'])
+        ->middleware('throttle:similar-issues')
+        ->name('similar-issue.index');
 
     // User Profile...
     Route::get('settings', fn () => to_route('user-profile.edit'));

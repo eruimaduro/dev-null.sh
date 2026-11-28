@@ -257,6 +257,14 @@ final class AppServiceProvider extends ServiceProvider
             Limit::perDay(300)->by('day:'.$this->userId($request)),
         ]);
 
+        // GitHub allows the app about 30 searches a minute in all, shared with repository insights, so one person typing an
+        // issue title must not spend it for everyone...
+        RateLimiter::for('similar-issues', fn (Request $request): array => [
+            Limit::perMinute(10)->by($this->userId($request)),
+            Limit::perDay(100)->by('day:'.$this->userId($request)),
+            Limit::perMinute(20)->by('app'),
+        ]);
+
         // Every commit search pays for an embedding and a relevance verdict, so it gets a budget of its own...
         RateLimiter::for('search', fn (Request $request): Limit => Limit::perMinute(15)
             ->by($this->userId($request))

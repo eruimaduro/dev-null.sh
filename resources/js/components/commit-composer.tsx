@@ -32,6 +32,7 @@ import {
     IssueCommandBadge,
     IssueCommandHint,
     IssueCommandSuggestions,
+    SimilarIssues,
     useIssueCommand,
 } from '@/components/issue-command';
 import { LinkCardPicker } from '@/components/link-card-picker';
@@ -375,6 +376,7 @@ function CommitComposerBody({
                             Posted to this guild, not your profile log.
                         </p>
                     )}
+                    {isIssue && <SimilarIssues body={body} />}
                     {issue.hint && (
                         <IssueCommandHint
                             command={issue.hint}

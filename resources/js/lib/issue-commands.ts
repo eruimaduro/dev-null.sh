@@ -66,3 +66,13 @@ export function hintedCommand(body: string): IssueCommand | null {
 
     return issueCommands.find((command) => command.kind === kind) ?? null;
 }
+
+/**
+ * The title an issue draft opens with, as the server picks it: its first top-level heading, or else its first line, cut
+ * to GitHub's 256 characters.
+ */
+export function issueTitle(body: string): string {
+    const heading = /^ {0,3}# +(.+?)(?: +#+)? *$/m.exec(body);
+
+    return (heading ? heading[1] : body.split('\n', 1)[0]).trim().slice(0, 256);
+}

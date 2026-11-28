@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
     hintedCommand,
+    issueTitle,
     suggestedCommands,
     typedCommand,
 } from '../../resources/js/lib/issue-commands.ts';
@@ -45,4 +46,25 @@ test('hints the command a plain draft mentions', () => {
     assert.equal(name('Featured on the front page'), null);
     assert.equal(name('/bug already a command'), null);
     assert.equal(name('Shipped the parser'), null);
+});
+
+test('titles an issue draft as the server does: its first heading, or else its first line', () => {
+    assert.equal(
+        issueTitle('# Dark mode\n\n## Problem\nToo bright'),
+        'Dark mode',
+    );
+    assert.equal(
+        issueTitle('Some context first\n# Dark mode #\nToo bright'),
+        'Dark mode',
+    );
+    assert.equal(
+        issueTitle('Dark mode on Android\n## Problem'),
+        'Dark mode on Android',
+    );
+    assert.equal(issueTitle('#123 is broken'), '#123 is broken');
+    assert.equal(issueTitle('\nDark mode'), '');
+});
+
+test('cuts the title of an issue draft to the 256 characters GitHub keeps', () => {
+    assert.equal(issueTitle('a'.repeat(4000)).length, 256);
 });
